@@ -6,6 +6,7 @@
 #include "synthux.h"
 #include "nocopy.h"
 #include "echo.h"
+#include "level.h"
 
 namespace synthux {
 namespace touchfx {
@@ -52,6 +53,7 @@ private:
   static constexpr uint32_t kSampleRate = 48000;
   static constexpr size_t kDelayLengthSamples = kDelayLengthSec * kSampleRate;
 
+  synthux::Level _level;
   std::array<daisysp::Overdrive, 2> _drive;
   std::array<daisysp::Decimator, 2> _crush;
   std::array<infrasonic::EchoDelay<kDelayLengthSamples>*, 2> _delay;

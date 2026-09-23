@@ -28,6 +28,8 @@ void Core::init(const float sample_rate, const float cb_rate)
         d->SetFeedback(.6f);
     }
 
+    _level.init(sample_rate);
+
     _delay_lfo.Init(sample_rate);
     _delay_lfo.SetWaveform(daisysp::Oscillator::WAVE_TRI);
 
@@ -68,10 +70,15 @@ void Core::process(const float* const* in, float** out, size_t size)
         auto bus1 = in1;
 
         // Drive
+        auto drive0 = bus0, drive1 = bus1;
+        _level.pre_gain(drive0, drive1);
+        _drive[0].Process(drive0);
+        _drive[1].Process(drive1);
+        _level.post_gain(drive0, drive1);
         _drive_fade.set_stage(_drive_on.process());
         _drive_fade.process(bus0, bus1,
-            _drive[0].Process(bus0) * _drive_mix,
-            _drive[1].Process(bus1) * _drive_mix,
+            drive0 * _drive_mix,
+            drive1 * _drive_mix,
             bus0, bus1);
 
         // Bitcrush
