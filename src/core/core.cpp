@@ -30,7 +30,6 @@ void Core::init(const float sample_rate, const float cb_rate)
     }
 
     _level.init(sample_rate);
-    _level.set_target_level(.8f);
 
     _delay_lfo.Init(sample_rate);
     _delay_lfo.SetWaveform(daisysp::Oscillator::WAVE_TRI);
