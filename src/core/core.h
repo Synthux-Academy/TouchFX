@@ -31,7 +31,7 @@ public:
 
   // Delay is an always-on send; the pad mutes/unmutes it (bypass) //////
   void set_delay_bypass(const bool bypass);
-  void set_delay_mix(const float norm);
+  void set_delay_amnt(const float norm);
   void set_delay_feedback(const float norm);
   void set_delay_time(const float norm);
   void set_delay_mod_speed(const float norm);
@@ -39,8 +39,8 @@ public:
 
   // Reverb is an always-on send; the pad mutes/unmutes it (bypass) ////
   void set_reverb_bypass(const bool bypass);
-  void set_reverb_mix(const float norm);
   void set_reverb_send(const float norm);
+  void set_reverb_amount(const float norm);
   void set_reverb_feedback(const float norm);
 
   // Master bypass ////////////////////////////////////////////////////
@@ -66,20 +66,17 @@ private:
   SoftSwitch _reverb_bypass;
   SoftSwitch _master_bypass;
 
-  XFade _drive_fade;
-  XFade _crush_fade;
-  XFade _delay_fade;
-  XFade _reverb_fade;
-  XFade _bypass_fade;
+  XFade _drive_mix;
+  XFade _crush_mix;
+  XFade _delay_mix;
+  XFade _reverb_mix;
+  XFade _bypass_mix;
 
-  float _drive_mix { 0.f };
-  float _crush_mix { 0.f };
+  float _delay_amount;
+  float _delay_time;
 
-  float _delay_mix { 0.f };
-  float _delay_time { 0.f };
-
-  float _reverb_send { 0.f };
-  float _reverb_mix { 0.f };
+  float _reverb_send;
+  float _reverb_amount;
 };
 
 };

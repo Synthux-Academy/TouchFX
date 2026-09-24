@@ -32,6 +32,13 @@ private:
     MValue _reverb_mix;
     std::array<MValue, 3> _drive_mix;
     std::array<MValue, 3> _crush_mix;
+
+    // Reverb send / drive amount / crush amount share S34, with the
+    // same pad-gated soft pickup as the S35 level macro.
+    MValue _reverb_send;
+    std::array<MValue, 3> _drive_amount;
+    std::array<MValue, 3> _crush_amount;
+
     uint8_t _drive_mix_index;
     uint8_t _crush_mix_index;
 
@@ -47,8 +54,8 @@ private:
     void _on_pad_touch(Pads::Pad);
     void _on_pad_release(Pads::Pad);
 
-    void _engage_drive(const uint8_t idx, const float amount);
-    void _engage_crush(const uint8_t idx, const float downsample, const float bitcrush);
+    void _engage_drive(const uint8_t idx);
+    void _engage_crush(const uint8_t idx);
     void _toggle_bypass();
     void _toggle_delay();
     void _toggle_reverb();

@@ -11,14 +11,20 @@ namespace {
     // Fixed drive / bitcrush "flavors", selected by which pad is held.
     constexpr std::array<float, 3> kDriveLevels { .45f, .56f, .7f };
     constexpr std::array<float, 3> kCrushDown   { .2f,  .23f, .5f };
-    constexpr std::array<float, 3> kCrushBits   { .3f, .4f, .6f };
+    constexpr std::array<float, 3> kCrushBits   { .3f,  .4f,  .6f };
 
     // Default post-volume for each flavor, used until the S35 knob is
     // moved while its pad is held (soft pickup). Without these, a fresh
     // pad touch mixes in 0% of the driven/crushed signal and the
     // dry->wet crossfade lands on silence instead of the dry signal.
-    constexpr std::array<float, 3> kDriveMixDefaults { .07f, .05f, .03f };
-    constexpr std::array<float, 3> kCrushMixDefaults { .8f,  .4f, .5f };
+    constexpr std::array<float, 3> kDriveMixDefaults { .5f, .4f, .3f };
+    constexpr std::array<float, 3> kCrushMixDefaults { .8f, .4f, .5f };
+
+    // S34 with a crush pad held sets the bitcrush factor; downsample
+    // follows it, keeping the flavor's downsample/bitcrush ratio.
+    float crush_downsample(const uint8_t idx, const float bitcrush) {
+        return fminf(bitcrush * kCrushDown[idx] / kCrushBits[idx], 1.f);
+    }
 }
 
 CoreUI::CoreUI(Touch& touch, Core& core):
@@ -51,6 +57,8 @@ void CoreUI::init()
     for (auto i = 0; i < 3; i++) {
         _drive_mix[i].set(kDriveMixDefaults[i]);
         _crush_mix[i].set(kCrushMixDefaults[i]);
+        _drive_amount[i].set(kDriveLevels[i]);
+        _crush_amount[i].set(kCrushBits[i]);
     }
 
     _init_timer.Init();
@@ -70,9 +78,17 @@ void CoreUI::process()
     }
     was_latched = _is_latched;
 
+    // Reverb send / drive / crush amount macro (S34) ...............
+    if (_apply.test(Knobs::s34)) {
+        _core.set_reverb_send(_reverb_send.value());
+        _core.set_drive_amount(_drive_amount[_drive_mix_index].value());
+        auto bitcrush = _crush_amount[_crush_mix_index].value();
+        _core.set_crush_amount(crush_downsample(_crush_mix_index, bitcrush), bitcrush);
+    }
+
     // Reverb / drive / crush level macro (S35) ......................
     if (_apply.test(Knobs::s35)) {
-        _core.set_reverb_mix(_reverb_mix.value());
+        _core.set_reverb_amount(_reverb_mix.value());
         _core.set_drive_mix(_drive_mix[_drive_mix_index].value());
         _core.set_crush_mix(_crush_mix[_crush_mix_index].value());
     }
@@ -87,9 +103,11 @@ void CoreUI::tick()
 
 void CoreUI::_process_ui_queue()
 {
-    // Init the reverb/level macro from its knob so nothing jumps at boot.
+    // Init the reverb send/level macros from their knobs so nothing jumps at boot.
     if (!_is_init && _init_timer.HasPassedMs(100)) {
+        _reverb_send.set(_touch.knobs().GetPotValue(Knobs::s34));
         _reverb_mix.set(_touch.knobs().GetPotValue(Knobs::s35));
+        _apply.set(Knobs::s34);
         _apply.set(Knobs::s35);
         _is_init = true;
     }
@@ -104,7 +122,7 @@ void CoreUI::_process_ui_queue()
             _apply.set(id);
             switch (id) {
                 case Knobs::s30:
-                    _core.set_delay_mix(val);
+                    _core.set_delay_amnt(val);
                     break;
 
                 case Knobs::s31:
@@ -119,9 +137,17 @@ void CoreUI::_process_ui_queue()
                     _core.set_delay_mod_amount(val);
                     break;
 
-                case Knobs::s34:
-                    _core.set_reverb_send(val);
+                case Knobs::s34: {
+                    auto none_touched = !_touched.any();
+                    _reverb_send.process(val, none_touched);
+                    _drive_amount[0].process(val, _touched.test(Pads::TopLeft));
+                    _drive_amount[1].process(val, _touched.test(Pads::Left));
+                    _drive_amount[2].process(val, _touched.test(Pads::CenterLeft));
+                    _crush_amount[0].process(val, _touched.test(Pads::TopRight));
+                    _crush_amount[1].process(val, _touched.test(Pads::CenterRight));
+                    _crush_amount[2].process(val, _touched.test(Pads::Right));
                     break;
+                }
 
                 case Knobs::s35: {
                     auto level = val * .8f;
@@ -152,13 +178,13 @@ void CoreUI::_on_pad_touch(Pads::Pad pad)
 {
     _touched.set(pad);
     switch (pad) {
-        case Pads::TopLeft:     _engage_drive(0, kDriveLevels[0]); break;
-        case Pads::Left:        _engage_drive(1, kDriveLevels[1]); break;
-        case Pads::CenterLeft:  _engage_drive(2, kDriveLevels[2]); break;
+        case Pads::TopLeft:     _engage_drive(0); break;
+        case Pads::Left:        _engage_drive(1); break;
+        case Pads::CenterLeft:  _engage_drive(2); break;
 
-        case Pads::TopRight:    _engage_crush(0, kCrushDown[0], kCrushBits[0]); break;
-        case Pads::CenterRight: _engage_crush(1, kCrushDown[1], kCrushBits[1]); break;
-        case Pads::Right:       _engage_crush(2, kCrushDown[2], kCrushBits[2]); break;
+        case Pads::TopRight:    _engage_crush(0); break;
+        case Pads::CenterRight: _engage_crush(1); break;
+        case Pads::Right:       _engage_crush(2); break;
 
         case Pads::Center:      _toggle_bypass(); break;
         case Pads::BottomLeft:  _toggle_delay(); break;
@@ -207,19 +233,20 @@ void CoreUI::_on_pad_release(Pads::Pad pad)
     }
 };
 
-void CoreUI::_engage_drive(const uint8_t idx, const float amount)
+void CoreUI::_engage_drive(const uint8_t idx)
 {
     _drive_mix_index = idx;
-    _core.set_drive_amount(amount);
+    _core.set_drive_amount(_drive_amount[idx].value());
     _core.set_drive_mix(_drive_mix[idx].value());
     _drive_on = !(_is_latched && _drive_on);
     _core.set_drive_on(_drive_on);
 }
 
-void CoreUI::_engage_crush(const uint8_t idx, const float downsample, const float bitcrush)
+void CoreUI::_engage_crush(const uint8_t idx)
 {
     _crush_mix_index = idx;
-    _core.set_crush_amount(downsample, bitcrush);
+    auto bitcrush = _crush_amount[idx].value();
+    _core.set_crush_amount(crush_downsample(idx, bitcrush), bitcrush);
     _core.set_crush_mix(_crush_mix[idx].value());
     _crush_on = !(_is_latched && _crush_on);
     _core.set_crush_on(_crush_on);

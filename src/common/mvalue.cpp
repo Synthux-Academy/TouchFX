@@ -16,7 +16,7 @@ _is_tracking  { false }
 float MValue::process(const float value, const bool active, int* id) {
   _in_value = value;
   if (!_set_active(active)) return _value;
-  *id = _id;
+  if (id) *id = _id;
   if (!_is_tracking && abs(value - _value) > kTreshold) return _value;
   _is_tracking = true;
   _value = value;
