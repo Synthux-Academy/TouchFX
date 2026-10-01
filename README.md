@@ -12,13 +12,19 @@
 - S32 - delay modulation speed
 - S33 - delay modulation amount
 - S34 - reverb send
+- S34 + P0 - drive A amount
+- S34 + P3 - drive B amount
+- S34 + P4 - drive C amount
+- S34 + P2 - bit crush A amount
+- S34 + P6 - bit crush B amount
+- S34 + P7 - bit crush C amount
 - S35 - reverb mix
-- S35 + P0 - drive A post volume
-- S35 + P3 - drive B post volume
-- S35 + P4 - drive C post volume
-- S35 + P2 - bit crush A post volume
-- S35 + P6 - bit crush B post volume
-- S35 + P7 - bit crush C post volume
+- S35 + P0 - drive A mix
+- S35 + P3 - drive B mix
+- S35 + P4 - drive C mix
+- S35 + P2 - bit crush A mix
+- S35 + P6 - bit crush B mix
+- S35 + P7 - bit crush C mix
 - S36 - delay time
 - S37 - reverb size
 
