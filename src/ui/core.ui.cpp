@@ -9,16 +9,16 @@ using namespace daisysp;
 
 namespace {
     // Fixed drive / bitcrush "flavors", selected by which pad is held.
-    constexpr std::array<float, 3> kDriveLevels { .45f, .56f, .7f };
-    constexpr std::array<float, 3> kCrushDown   { .2f,  .23f, .5f };
-    constexpr std::array<float, 3> kCrushBits   { .3f,  .4f,  .6f };
+    constexpr std::array<float, 3> kDriveLevels { .25f,  .4f,  .45f };
+    constexpr std::array<float, 3> kCrushDown   { .3f,  .45f, .7f  };
+    constexpr std::array<float, 3> kCrushBits   { .4f,  .5f,  .8f  };
 
     // Default post-volume for each flavor, used until the S35 knob is
     // moved while its pad is held (soft pickup). Without these, a fresh
     // pad touch mixes in 0% of the driven/crushed signal and the
     // dry->wet crossfade lands on silence instead of the dry signal.
-    constexpr std::array<float, 3> kDriveMixDefaults { .5f, .4f, .3f };
-    constexpr std::array<float, 3> kCrushMixDefaults { .8f, .4f, .5f };
+    constexpr std::array<float, 3> kDriveMixDefaults { .8f, .1f, .1f };
+    constexpr std::array<float, 3> kCrushMixDefaults { .7f, .8f, 1.f };
 
     // S34 with a crush pad held sets the bitcrush factor; downsample
     // follows it, keeping the flavor's downsample/bitcrush ratio.
@@ -28,16 +28,16 @@ namespace {
 }
 
 CoreUI::CoreUI(Touch& touch, Core& core):
-_touch          { touch },
-_core           { core },
-_drive_mix_index{ 0 },
-_crush_mix_index{ 0 },
-_drive_on       { false },
-_crush_on       { false },
-_bypass_on      { false },
-_delay_bypassed { false },
-_reverb_bypassed{ false },
-_is_latched     { false }
+_touch              { touch },
+_core               { core },
+_drive_mix_index    { 0 },
+_crush_mix_index    { 0 },
+_drive_on           { false },
+_crush_on           { false },
+_bypass_on          { false },
+_delay_bypassed     { false },
+_reverb_bypassed    { false },
+_is_latched         { false }
 {}
 
 void CoreUI::init()
@@ -141,8 +141,8 @@ void CoreUI::_process_ui_queue()
                     auto none_touched = !_touched.any();
                     _reverb_send.process(val, none_touched);
                     _drive_amount[0].process(val, _touched.test(Pads::TopLeft));
-                    _drive_amount[1].process(val, _touched.test(Pads::Left));
-                    _drive_amount[2].process(val, _touched.test(Pads::CenterLeft));
+                    _drive_amount[1].process(val, _touched.test(Pads::CenterLeft));
+                    _drive_amount[2].process(val, _touched.test(Pads::Left));
                     _crush_amount[0].process(val, _touched.test(Pads::TopRight));
                     _crush_amount[1].process(val, _touched.test(Pads::CenterRight));
                     _crush_amount[2].process(val, _touched.test(Pads::Right));
@@ -179,8 +179,8 @@ void CoreUI::_on_pad_touch(Pads::Pad pad)
     _touched.set(pad);
     switch (pad) {
         case Pads::TopLeft:     _engage_drive(0); break;
-        case Pads::Left:        _engage_drive(1); break;
-        case Pads::CenterLeft:  _engage_drive(2); break;
+        case Pads::CenterLeft:  _engage_drive(1); break;
+        case Pads::Left:        _engage_drive(2); break;
 
         case Pads::TopRight:    _engage_crush(0); break;
         case Pads::CenterRight: _engage_crush(1); break;
